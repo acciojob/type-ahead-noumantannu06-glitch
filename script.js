@@ -1,8 +1,12 @@
-// cypress/integration/tests/test.spec.js
+// ============================================
+// FILE: cypress/integration/tests/test.spec.js
+// ============================================
+
+// Cypress globals (describe, it, beforeEach) are automatically available
+// when running through Cypress test runner - no need to import them
 
 describe('Search Typeahead', () => {
-  // ✅ FIX 1: Register intercept BEFORE visiting the page
-  // This fixes Test 3: "cy.wait() timed out - No response ever occurred"
+  // ✅ Register intercept BEFORE visiting the page
   beforeEach(() => {
     // Stub the suggestions API with fixture data
     cy.intercept('GET', '/api/suggestions?*', {
@@ -13,15 +17,14 @@ describe('Search Typeahead', () => {
   });
 
   it('should display suggestions when API request returns results', () => {
-    // ✅ FIX 2: Add delay to typing to prevent character drops
-    // This fixes Tests 1 & 2: "#suggestions-list li not found"
+    // Type with delay to allow API to respond between keypresses
     cy.get('#search-input')
-      .type('test', { delay: 300 });  // 300ms between each character
+      .type('test', { delay: 300 });
     
     // Wait for the intercepted API request
     cy.wait('@suggestions');
     
-    // Now assertions should work
+    // Assertions - suggestions should exist
     cy.get('#suggestions-list li')
       .should('exist')
       .should('be.visible')
