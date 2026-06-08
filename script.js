@@ -1,9 +1,9 @@
 const typeahead = document.getElementById("typeahead");
 const suggestionsList = document.getElementById("suggestions-list");
 
-let timeoutId;
+let timerId = null;
 
-// Display suggestions
+// Render suggestions
 function renderSuggestions(suggestions) {
   suggestionsList.innerHTML = "";
 
@@ -21,33 +21,32 @@ function renderSuggestions(suggestions) {
 }
 
 // Fetch suggestions
-async function getSuggestions(text) {
+async function fetchSuggestions(text) {
   try {
     const response = await fetch(
-      `https://api.frontendexpert.io/api/fe/glossary-suggestions?text=${text}`
+      `https://api.frontendexpert.io/api/fe/glossary-suggestions?text=${encodeURIComponent(
+        text
+      )}`
     );
 
     const data = await response.json();
 
     renderSuggestions(data);
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.error(err);
   }
 }
 
-// Input event
+// Input handler
 typeahead.addEventListener("input", () => {
-  clearTimeout(timeoutId);
+  clearTimeout(timerId);
 
-  const value = typeahead.value.trim();
-
-  // Clear list and don't request API if empty
-  if (value === "") {
+  if (typeahead.value === "") {
     suggestionsList.innerHTML = "";
     return;
   }
 
-  timeoutId = setTimeout(() => {
-    getSuggestions(value);
+  timerId = setTimeout(() => {
+    fetchSuggestions(typeahead.value);
   }, 500);
 });
