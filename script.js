@@ -1,81 +1,53 @@
-// ============================================
-// FILE: cypress/integration/tests/test.spec.js
-// ============================================
+const typeahead = document.getElementById("typeahead");
+const suggestionsList = document.getElementById("suggestions-list");
 
-// Cypress globals (describe, it, beforeEach) are automatically available
-// when running through Cypress test runner - no need to import them
+let timeoutId;
 
-describe('Search Typeahead', () => {
-  // ✅ Register intercept BEFORE visiting the page
-  beforeEach(() => {
-    // Stub the suggestions API with fixture data
-    cy.intercept('GET', '/api/suggestions?*', {
-      fixture: 'suggestions.json'
-    }).as('suggestions');
-    
-    cy.visit('/');
+// Display suggestions
+function renderSuggestions(suggestions) {
+  suggestionsList.innerHTML = "";
+
+  suggestions.forEach((suggestion) => {
+    const li = document.createElement("li");
+    li.textContent = suggestion;
+
+    li.addEventListener("click", () => {
+      typeahead.value = suggestion;
+      suggestionsList.innerHTML = "";
+    });
+
+    suggestionsList.appendChild(li);
   });
+}
 
-  it('should display suggestions when API request returns results', () => {
-    // Type with delay to allow API to respond between keypresses
-    cy.get('#search-input')
-      .type('test', { delay: 300 });
-    
-    // Wait for the intercepted API request
-    cy.wait('@suggestions');
-    
-    // Assertions - suggestions should exist
-    cy.get('#suggestions-list li')
-      .should('exist')
-      .should('be.visible')
-      .should('have.length.greaterThan', 0);
-  });
+// Fetch suggestions
+async function getSuggestions(text) {
+  try {
+    const response = await fetch(
+      `https://api.frontendexpert.io/api/fe/glossary-suggestions?text=${text}`
+    );
 
-  it('should fill in typeahead when suggestion is clicked', () => {
-    // Type with delay to trigger API
-    cy.get('#search-input')
-      .type('test', { delay: 300 });
-    
-    // Wait for API response
-    cy.wait('@suggestions');
-    
-    // Verify suggestions exist first
-    cy.get('#suggestions-list li')
-      .should('exist')
-      .should('be.visible');
-    
-    // Click the first suggestion
-    cy.get('#suggestions-list li')
-      .first()
-      .click();
-    
-    // Verify input is filled with suggestion text
-    cy.get('#search-input')
-      .should('not.be.empty');
-  });
+    const data = await response.json();
 
-  it('should clear suggestions when typeahead is cleared and no request is made', () => {
-    // First, type something to get suggestions
-    cy.get('#search-input')
-      .type('test', { delay: 300 });
-    
-    // Wait for API response
-    cy.wait('@suggestions');
-    
-    // Verify suggestions are displayed
-    cy.get('#suggestions-list li')
-      .should('exist')
-      .should('be.visible');
-    
-    // Clear the input
-    cy.get('#search-input').clear();
-    
-    // Verify suggestions are cleared
-    cy.get('#suggestions-list')
-      .should('not.exist');
-    
-    // Verify input is empty
-    cy.get('#search-input')
-      .should('have.value', '');
-  });
+    renderSuggestions(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Input event
+typeahead.addEventListener("input", () => {
+  clearTimeout(timeoutId);
+
+  const value = typeahead.value.trim();
+
+  // Clear list and don't request API if empty
+  if (value === "") {
+    suggestionsList.innerHTML = "";
+    return;
+  }
+
+  timeoutId = setTimeout(() => {
+    getSuggestions(value);
+  }, 500);
 });
